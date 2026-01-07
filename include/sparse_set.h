@@ -57,7 +57,11 @@ private:
 	std::vector<DenseIndex> page_to_dense {};
 };
 
-struct ISparseSet {};
+struct ISparseSet {
+	// The ECS needs a way to iterate through the component lists and remove entries,
+	// but it can't know which types to cast to, so we have to use this interface method
+	virtual void remove_entry_type_erased(SparseIndex sparse_index) = 0;
+};
 
 template<typename T>
 struct SparseSet : ISparseSet {
@@ -150,6 +154,10 @@ public:
 		if (sparse_index0 != sparse_index1) sparse_entries[page_number1].add_entry(page_index1, dense_index0, page_size);
 	}
 
+	void remove_entry_type_erased(SparseIndex sparse_index) override {
+		remove_entry(sparse_index);
+	}
+
 	using iterator = T*;
 	using const_iterator = const T*;
 
@@ -166,7 +174,7 @@ public:
 	}
 
 	const_iterator end() const {
-		return dense_entries.end() + size();
+		return dense_entries.data() + size();
 	}
 
 	//void print_sparse() {
