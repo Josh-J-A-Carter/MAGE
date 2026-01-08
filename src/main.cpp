@@ -1,5 +1,7 @@
 #include "ecs.h"
 
+#include "gmath.h"
+
 #include "glad/glad.h"
 #include "SDL3/SDL.h"
 #include "SDL3/SDL_main.h"
@@ -32,6 +34,13 @@ void my_system(State ecs) {
 
 
 int main(int argc, char** argv) {
+
+	//std::cout << res.x << ", " << res.y << ", " << res.z << ", " << res.w << std::endl;
+
+	//std::cout << test[0] << ", " << test[4] << ", " << test[8] << ", " << test[12] << std::endl;
+	//std::cout << test[1] << ", " << test[5] << ", " << test[9] << ", " << test[13] << std::endl;
+	//std::cout << test[2] << ", " << test[6] << ", " << test[10] << ", " << test[14] << std::endl;
+	//std::cout << test[3] << ", " << test[7] << ", " << test[11] << ", " << test[15] << std::endl;
 
 	//State ecs {};
 
@@ -102,11 +111,34 @@ int main(int argc, char** argv) {
 	std::cout << "Successfully created OpenGL Context" << std::endl;
 
 
-	float vertices[] = {
-		-0.5f, -0.5f, 0.0f,
-		 0.5f, -0.5f, 0.0f,
-		 0.0f,  0.5f, 0.0f
+	float vertices[] {
+		// Front vertices
+		-1, -1, -1,
+		1, -1, -1,
+		1, 1, -1,
+		-1, 1, -1,
+
+		// Back vertices
+		-1, -1, -3,
+		1, -1, -3,
+		1, 1, -3,
+		-1, 1, -3,
 	};
+
+	int indices[] {
+		// Front
+		0, 1, 2,
+		2, 3, 0,
+
+		//// Top
+		3, 2, 6,
+		6, 7, 3
+	};
+
+	constexpr int NUM_INDICES { sizeof(indices) / sizeof(indices[0]) };
+
+	GLuint ebo {};
+	glGenBuffers(1, &ebo);
 
 	GLuint vbo {};
 	glGenBuffers(1, &vbo);
@@ -115,6 +147,10 @@ int main(int argc, char** argv) {
 	glGenVertexArrays(1, &vao);
 
 	glBindVertexArray(vao);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(vertices[0]), (void*) 0);
@@ -125,9 +161,10 @@ int main(int argc, char** argv) {
 	const char* vertex_shader {
 		"#version 410 core												\n\
 		layout(location = 0) in vec3 aPos;								\n\
+		uniform mat4 u_proj;											\n\
 																		\n\
 		void main() {													\n\
-			gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);			\n\
+			gl_Position = u_proj * vec4(aPos.x, aPos.y, aPos.z, 1.0);	\n\
 		}"
 	};
 
@@ -173,6 +210,15 @@ int main(int argc, char** argv) {
 	glDeleteShader(fs);
 
 	glUseProgram(program);
+	glEnable(GL_CULL_FACE);
+	glEnable(GL_DEPTH_TEST);
+	
+	Mat4x4 cam { view({0, 0, -0.5}, {0, -1, -10}, {0, 1, 0}) };
+	Mat4x4 proj { perspective(1.78f, 160.0f, 0.1f, 100.0f) * cam };
+
+	GLint u_proj_loc { glGetUniformLocation(program, "u_proj") };
+	glUniformMatrix4fv(u_proj_loc, 1, GL_FALSE, &proj);
+
 
 	while (true) {
 		int width;
@@ -184,8 +230,8 @@ int main(int argc, char** argv) {
 		glClearColor(0.7f, 0.7f, 1.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		glBindVertexArray(vao);
-		glDrawArrays(GL_TRIANGLES, 0, 3);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+		glDrawElements(GL_TRIANGLES, NUM_INDICES, GL_UNSIGNED_INT, 0);
 
 		SDL_GL_SwapWindow(window);
 	}
