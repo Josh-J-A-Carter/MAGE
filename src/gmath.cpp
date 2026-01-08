@@ -2,7 +2,6 @@
 
 #include <cassert>
 #include <cmath>
-#include <iostream>
 
 Vec3 Vec3::cross(Vec3 other) const {
 	const Vec3& a { *this };
@@ -38,6 +37,16 @@ Vec3 Vec3::operator*(float scalar) const {
 		y * scalar,
 		z * scalar
 	};
+}
+
+Vec3 Vec3::operator+(Vec3 other) const {
+	return { x + other.x, y + other.y, z + other.z };
+}
+
+void Vec3::operator+=(Vec3 other) {
+	x += other.x;
+	y += other.y;
+	z += other.z;
 }
 
 Vec3 Vec3::operator-() const {

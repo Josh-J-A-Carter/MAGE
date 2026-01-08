@@ -16,6 +16,10 @@ struct Vec3 {
 
 	Vec3 operator*(float scalar) const;
 
+	Vec3 operator+(Vec3 other) const;
+
+	void operator+=(Vec3 other);
+
 	Vec3 operator-() const;
 };
 
