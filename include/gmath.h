@@ -1,7 +1,9 @@
 #ifndef GMATH_H
 #define GMATH_H
 
-
+#include <string>
+#include <iostream>
+#include <random>
 
 struct Vec3 {
 	float x, y, z;
@@ -14,6 +16,8 @@ struct Vec3 {
 
 	Vec3 normalised() const;
 
+	float* operator&();
+
 	Vec3 operator*(float scalar) const;
 
 	Vec3 operator+(Vec3 other) const;
@@ -21,7 +25,11 @@ struct Vec3 {
 	void operator+=(Vec3 other);
 
 	Vec3 operator-() const;
+
+	static Vec3 rand(std::mt19937& generator, float lower, float upper);
 };
+
+std::ostream& operator<<(std::ostream& stream, Vec3 vec);
 
 struct Vec4 {
 	float x, y, z, w;

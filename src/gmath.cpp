@@ -31,6 +31,10 @@ Vec3 Vec3::normalised() const {
 	};
 }
 
+float* Vec3::operator&() {
+	return &x;
+}
+
 Vec3 Vec3::operator*(float scalar) const {
 	return {
 		x * scalar,
@@ -51,6 +55,21 @@ void Vec3::operator+=(Vec3 other) {
 
 Vec3 Vec3::operator-() const {
 	return operator*(-1);
+}
+
+std::ostream& operator<<(std::ostream& stream, Vec3 vec) {
+	stream << "(" << vec.x << ", " << vec.y << ", " << vec.z << ")";
+	return stream;
+}
+
+Vec3 Vec3::rand(std::mt19937& generator, float lower, float upper) {
+	std::uniform_real_distribution dist { lower, upper };
+
+	float x { dist(generator) };
+	float y { dist(generator) };
+	float z { dist(generator) };
+
+	return { x, y, z };
 }
 
 
