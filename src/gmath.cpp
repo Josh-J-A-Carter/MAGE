@@ -43,6 +43,10 @@ Vec3 Vec3::operator*(float scalar) const {
 	};
 }
 
+Vec3 operator*(float scalar, Vec3 vec) {
+	return vec * scalar;
+}
+
 Vec3 Vec3::operator+(Vec3 other) const {
 	return { x + other.x, y + other.y, z + other.z };
 }
@@ -116,6 +120,70 @@ Mat4x4 Mat4x4::operator*(Mat4x4& right) {
 
 	return out;
 }
+
+
+Quat Quat::operator*(Quat other) const {
+	const Quat& q1 = *this;
+	Quat& q2 = other;
+
+	return {
+		q1.w*q2.w - q1.x*q2.x - q1.y*q2.y - q1.z*q2.z,
+		q1.w*q2.x + q1.x*q2.w + q1.y*q2.z - q1.z*q2.y,
+		q1.w*q2.y - q1.x*q2.z + q1.y*q2.w + q1.z*q2.x,
+		q1.w*q2.z + q1.x*q2.y - q1.y*q2.x + q1.z*q2.w
+	};
+}
+
+Quat Quat::conjugate() const {
+	return { w, -x, -y, -z };
+}
+
+Mat4x4 Quat::matrix() const {
+	Mat4x4 out;
+
+	out[0] = 1 - 2*(y*y + z*z);		out[4] = 2*(x*y + z*w);			out[8] = 2*(x*z - y*w);			out[12] = 0;
+	out[1] = 2*(x*y - z*w);			out[5] = 1 - 2*(x*x + z*z);		out[9] = 2*(y*z + x*w);			out[13] = 0;
+	out[2] = 2*(x*z + y*w);			out[6] = 2*(y*z - x*w);			out[10] = 1 - 2*(x*x + y*y);	out[14] = 0;
+	out[3] = 0;						out[7] = 0;						out[11] = 0;					out[15] = 1;
+
+	return out;
+}
+
+Quat Quat::rotation(Vec3 axis, float amount) {
+	float cosine { cos(amount/2) };
+	float sine { sin(amount/2) };
+
+	return { cosine, sine * axis.x, sine * axis.y, sine * axis.z };
+}
+
+Vec3 Quat::rotate_around(Vec3 vec, Vec3 axis, float amount) {
+	// axis is normalised
+
+	float cosine { cos(amount/2) };
+	float sine { sin(amount/2) };
+
+	Quat q { cosine, sine * axis };
+	Quat v { 0, vec };
+	Quat qstar { cosine, -sine * axis };
+
+	Quat out { q * v * qstar };
+
+	return { out.x, out.y, out.z };
+}
+
+Quat Quat::rotation_between(Vec3 v1, Vec3 v2) {
+	// First, find middle vector between v1 and v2.
+	// If theta is the angle between v1 and v2, then mid makes angle theta/2 with v1 and theta/2 with v2
+	//		==> v1 * mid = |v1| |mid| cos(theta/2) = 1 * 1 cos(theta/2) = cos(theta / 2),
+	//			|v1 x mid| = |v1| |mid| sin(theta/2) = 1 * 1 sin(theta/2) = sin(theta / 2)
+	// So v1 x mid is normal to v1, v2, and mid, and has size sin(theta/2)
+	//		==> Quat{ v1 * mid, v1 x mid } is the required rotation
+	Vec3 mid { (v1 + v2).normalised() };
+	v1 = v1.normalised();
+
+	return { v1.dot(mid), v1.cross(mid) };
+}
+
 
 
 Mat4x4 view(Vec3 at, Vec3 look, Vec3 world_up) {

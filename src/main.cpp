@@ -16,20 +16,24 @@ using State = ECS<MAX_ENTITIES, MAX_COMPONENTS>;
 
 struct Transform {
 	Vec3 position;
+	Quat orientation;
 
 	Mat4x4 model() {
-		Mat4x4 out {};
+		Mat4x4 translate {};
 
-		out[0] = 1;
-		out[5] = 1;
-		out[10] = 1;
-		out[15] = 1;
+		translate[0] = 1;
+		translate[5] = 1;
+		translate[10] = 1;
+		translate[15] = 1;
 
-		out[12] = position.x;
-		out[13] = position.y;
-		out[14] = position.z;
+		translate[12] = position.x;
+		translate[13] = position.y;
+		translate[14] = position.z;
 
-		return out;
+		// Rotate in local space, and *then* translate
+		Mat4x4 rot { orientation.matrix() };
+
+		return translate * rot;
 	}
 };
 
@@ -262,11 +266,20 @@ int main(int argc, char** argv) {
 	app.player = player;
 
 
-	for (int i { 0 } ; i < 100 ; i += 1) {
+	for (int i { 0 } ; i < 1 ; i += 1) {
 		Entity cube { ecs.create_entity() };
-		ecs.add_component<MeshRenderer>(cube, { cube_mesh, Vec3::rand(app.rand, 0.1f, 1.0f)});
-		ecs.add_component<Transform>(cube, { Vec3::rand(app.rand, -20, 20) + Vec3{ 0, 0, -30 } });
-		ecs.add_component<PhysicsBody>(cube, { std::uniform_real_distribution { 0.001f, 0.05f }(app.rand) });
+		ecs.add_component<MeshRenderer>(cube, { cube_mesh, Vec3::rand(app.rand, 0.1f, 1.0f) });
+		ecs.add_component<PhysicsBody>(cube, { 0 });
+
+		constexpr float PI { 3.14159f };
+		float theta = std::uniform_real_distribution{ -PI/2, PI/2 }(app.rand);
+		float phi = std::uniform_real_distribution{ 0.0f, 2 * PI }(app.rand);
+		Vec3 rot_axis = { cos(theta) * cos(phi), cos(theta) * sin(phi), sin(theta) };
+
+		float rot_amount = std::uniform_real_distribution{ 0.0f, 2 * PI }(app.rand);
+
+		Quat orientation { Quat::rotation(rot_axis, rot_amount) };
+		ecs.add_component<Transform>(cube, { Vec3::rand(app.rand, -20, 20) + Vec3{ 0, 0, -30 }, orientation });
 	}
 	
 	bool quit = false;

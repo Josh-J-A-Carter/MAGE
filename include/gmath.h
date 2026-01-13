@@ -29,6 +29,8 @@ struct Vec3 {
 	static Vec3 rand(std::mt19937& generator, float lower, float upper);
 };
 
+Vec3 operator*(float scalar, Vec3 vec);
+
 std::ostream& operator<<(std::ostream& stream, Vec3 vec);
 
 struct Vec4 {
@@ -48,6 +50,30 @@ struct Mat4x4 {
 
 	Mat4x4 operator*(Mat4x4& right);
 };
+
+
+struct Quat {
+	float w, x, y, z;
+
+	Quat() : w { 1 }, x { 0 }, y { 0 }, z { 0 } {}
+
+	Quat(float w, float x, float y, float z) : w { w }, x { x }, y { y }, z { z } {}
+	
+	Quat(float s, Vec3 v) : w { s }, x { v.x }, y { v.y }, z { v.z } {}
+
+	Quat operator*(Quat other) const;
+
+	Quat conjugate() const;
+
+	Mat4x4 matrix() const;
+
+	static Quat rotation(Vec3 axis, float amount);
+
+	static Vec3 rotate_around(Vec3 vec, Vec3 axis, float amount);
+
+	static Quat rotation_between(Vec3 v1, Vec3 v2);
+};
+
 
 Mat4x4 view(Vec3 at, Vec3 look, Vec3 world_up);
 
