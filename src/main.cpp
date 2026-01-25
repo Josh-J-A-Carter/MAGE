@@ -266,7 +266,7 @@ int main(int argc, char** argv) {
 	app.player = player;
 
 
-	for (int i { 0 } ; i < 1 ; i += 1) {
+	for (int i { 0 } ; i < 100 ; i += 1) {
 		Entity cube { ecs.create_entity() };
 		ecs.add_component<MeshRenderer>(cube, { cube_mesh, Vec3::rand(app.rand, 0.1f, 1.0f) });
 		ecs.add_component<PhysicsBody>(cube, { 0 });
