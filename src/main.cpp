@@ -1,6 +1,8 @@
 #include "ecs.h"
 
 #include "gmath.h"
+#include "parse.h"
+#include "mesh.h"
 
 #include "glad/glad.h"
 #include "SDL3/SDL.h"
@@ -46,11 +48,6 @@ struct Application {
 	std::mt19937 rand;
 };
 
-struct Mesh {
-	GLuint ebo {};
-	int num_indices {};
-};
-
 struct MeshRenderer {
 	std::shared_ptr<Mesh> mesh {};
 	Vec3 color {};
@@ -77,6 +74,7 @@ struct Camera {
 bool input_system(State& ecs, Application& app);
 void physics_system(State& ecs, Application& app);
 void render_system(State& ecs, Application& app);
+
 
 
 int main(int argc, char** argv) {
@@ -115,86 +113,26 @@ int main(int argc, char** argv) {
 	}
 
 
-	float vertices[] {
-		// Front vertices
-		-1, -1, -1,    1.0f, 1.0f, 1.0f,
-		1, -1, -1,		0.6f, 1.0f, 1.0f,
-		1, 1, -1,		1.0f, 0.6f, 1.0f,
-		-1, 1, -1,		1.0f, 1.0f, 0.6f,
-
-		// Back vertices
-		-1, -1, -3,		1.0f, 0.6f, 0.6f,
-		1, -1, -3,		0.6f, 1.0f, 0.6f,
-		1, 1, -3,		0.6f, 0.6f, 1.0f,
-		-1, 1, -3,		0.3f, 0.3f, 0.3f
-	};
-
-	int indices[] {
-		// Front
-		0, 1, 2,
-		2, 3, 0,
-
-		// Back
-		5, 4, 7,
-		5, 7, 6,
-
-		// Top
-		3, 2, 6,
-		6, 7, 3,
-
-		// Bottom
-		1, 0, 4,
-		4, 5, 1,
-
-		// Left
-		0, 3, 7,
-		0, 7, 4,
-
-		// Right
-		1, 6, 2,
-		1, 5, 6,
-	};
-
-	constexpr int NUM_INDICES { sizeof(indices) / sizeof(indices[0]) };
-
-	GLuint ebo {};
-	glGenBuffers(1, &ebo);
-
-	GLuint vbo {};
-	glGenBuffers(1, &vbo);
-
-	GLuint vao {};
-	glGenVertexArrays(1, &vao);
-
-	glBindVertexArray(vao);
-
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-	
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(vertices[0]), (void*) (0 * sizeof(vertices[0])));
-	glEnableVertexAttribArray(0);
-
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(vertices[0]), (void*) (3 * sizeof(vertices[0])));
-	glEnableVertexAttribArray(1);
-
-	std::shared_ptr<Mesh> cube_mesh { std::make_shared<Mesh>(ebo, NUM_INDICES) };
+	std::shared_ptr<Mesh> cube_mesh { parse_obj("cube.obj") };
 
 	GLuint program { glCreateProgram() };
 
 	const char* vertex_shader {
 		"#version 410 core												\n\
 		layout(location = 0) in vec3 aPos;								\n\
-		layout(location = 1) in vec3 v_col;								\n\
+		layout(location = 1) in vec2 v_tex;								\n\
+		layout(location = 2) in vec3 v_col;								\n\
 		uniform mat4 u_proj;											\n\
+		uniform mat4 u_rot;									     		\n\
 		uniform vec3 u_color;											\n\
 		out vec3 f_col;													\n\
 																		\n\
 		void main() {													\n\
+			vec3 normal = vec3(0.0, 1.0, 0.0);          				\n\
 			gl_Position = u_proj * vec4(aPos.x, aPos.y, aPos.z, 1.0);	\n\
-			f_col = v_col * u_color;									\n\
+			//f_col = v_col * u_color;									\n\
+            vec3 n = (u_rot * vec4(v_col.xyz, 1.0)).xyz;				\n\
+			f_col = dot(normal, n) * u_color;                           \n\
 		}"
 	};
 
@@ -372,6 +310,7 @@ void render_system(State& ecs, Application& app) {
 	Camera& player_camera { cameras[app.player.index] };
 	Transform& player_transform { transforms[app.player.index] };
 
+	GLint u_rot_loc { glGetUniformLocation(app.shader, "u_rot") };
 	GLint u_proj_loc { glGetUniformLocation(app.shader, "u_proj") };
 	GLint u_color_loc { glGetUniformLocation(app.shader, "u_color") };
 
@@ -379,8 +318,10 @@ void render_system(State& ecs, Application& app) {
 	Mat4x4 persp { perspective(static_cast<float>(app.width) / app.height, player_camera.fov, player_camera.near, player_camera.far) };
 
 	for (auto& entity : entities) {
+		Mat4x4 rot { transforms[entity.index].orientation.matrix() };
 		Mat4x4 model { transforms[entity.index].model() };
 		Mat4x4 proj { persp * cam * model };
+		glUniformMatrix4fv(u_rot_loc, 1, GL_FALSE, &rot);
 		glUniformMatrix4fv(u_proj_loc, 1, GL_FALSE, &proj);
 
 		MeshRenderer& mesh_renderer { meshes[entity.index] };
