@@ -44,5 +44,12 @@
     <ClInclude Include="include\parse.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\utilities.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="assets\shaders\toon.vert" />
+    <None Include="assets\shaders\toon.frag" />
   </ItemGroup>
 </Project>

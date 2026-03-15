@@ -3,6 +3,7 @@
 #include "gmath.h"
 #include "parse.h"
 #include "mesh.h"
+#include "utilities.h"
 
 #include "glad/glad.h"
 #include "SDL3/SDL.h"
@@ -113,38 +114,15 @@ int main(int argc, char** argv) {
 	}
 
 
-	std::shared_ptr<Mesh> cube_mesh { parse_obj("cube.obj") };
+	std::shared_ptr<Mesh> cube_mesh { parse_obj("assets/models/shrimp.obj") };
 
 	GLuint program { glCreateProgram() };
 
-	const char* vertex_shader {
-		"#version 410 core												\n\
-		layout(location = 0) in vec3 aPos;								\n\
-		layout(location = 1) in vec2 v_tex;								\n\
-		layout(location = 2) in vec3 v_col;								\n\
-		uniform mat4 u_proj;											\n\
-		uniform mat4 u_rot;									     		\n\
-		uniform vec3 u_color;											\n\
-		out vec3 f_col;													\n\
-																		\n\
-		void main() {													\n\
-			vec3 normal = vec3(0.0, 1.0, 0.0);          				\n\
-			gl_Position = u_proj * vec4(aPos.x, aPos.y, aPos.z, 1.0);	\n\
-			//f_col = v_col * u_color;									\n\
-            vec3 n = (u_rot * vec4(v_col.xyz, 1.0)).xyz;				\n\
-			f_col = dot(normal, n) * u_color;                           \n\
-		}"
-	};
+	std::string vert { read_file("assets/shaders/toon.vert") };
+	const char* vertex_shader { vert.c_str() };
 
-	const char* fragment_shader {
-		"#version 410 core												\n\
-		in vec3 f_col;													\n\
-		out vec4 FragColor;												\n\
-																		\n\
-		void main() {													\n\
-			FragColor = vec4(f_col.x, f_col.y, f_col.z, 1.0);			\n\
-		}"
-	};
+	std::string frag { read_file("assets/shaders/toon.frag") };
+	const char* fragment_shader { frag.c_str() };
 
 	int  success;
 	char infoLog[512];
@@ -204,9 +182,10 @@ int main(int argc, char** argv) {
 	app.player = player;
 
 
-	for (int i { 0 } ; i < 100 ; i += 1) {
+	constexpr int NUM_SHRIMPS { 20 };
+	for (int i { 0 } ; i < NUM_SHRIMPS ; i += 1) {
 		Entity cube { ecs.create_entity() };
-		ecs.add_component<MeshRenderer>(cube, { cube_mesh, Vec3::rand(app.rand, 0.1f, 1.0f) });
+		ecs.add_component<MeshRenderer>(cube, { cube_mesh, { 1.0, 0.3, 0.3 } }); //Vec3::rand(app.rand, 0.1f, 1.0f)
 		ecs.add_component<PhysicsBody>(cube, { 0 });
 
 		constexpr float PI { 3.14159f };
@@ -217,7 +196,7 @@ int main(int argc, char** argv) {
 		float rot_amount = std::uniform_real_distribution{ 0.0f, 2 * PI }(app.rand);
 
 		Quat orientation { Quat::rotation(rot_axis, rot_amount) };
-		ecs.add_component<Transform>(cube, { Vec3::rand(app.rand, -20, 20) + Vec3{ 0, 0, -30 }, orientation });
+		ecs.add_component<Transform>(cube, { Vec3::rand(app.rand, -40, 40) + Vec3{ 0, 0, -30 }, orientation });
 	}
 	
 	bool quit = false;
